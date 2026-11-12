@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>QualiLens – วิเคราะห์ข้อมูลวิจัยเชิงคุณภาพ</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF3F2;--card:#fff;--ink:#12272B;--mut:#5B7075;--ac:#0F766E;--onac:#fff;--ln:#D3DEDC;--hd:#E3ECEA;--err:#B42318}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0E1A1C;--card:#16282B;--ink:#E4EFEE;--mut:#93A9AD;--ac:#2DD4BF;--onac:#06201D;--ln:#264144;--hd:#1D3437;--err:#FDA29B}}
+:root[data-theme="dark"]{--bg:#0E1A1C;--card:#16282B;--ink:#E4EFEE;--mut:#93A9AD;--ac:#2DD4BF;--onac:#06201D;--ln:#264144;--hd:#1D3437;--err:#FDA29B}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 Sarabun,"Noto Sans Thai",Tahoma,sans-serif;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}
+.w{max-width:1120px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:2rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.2rem;margin:0 0 10px}
+.sub{color:var(--mut);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:18px;margin-bottom:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font:600 .95rem Sarabun,Tahoma,sans-serif;border:1px solid var(--ac);background:transparent;color:var(--ac);padding:9px 16px;border-radius:8px;cursor:pointer}
+button:hover{background:var(--hd)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+button.p{background:var(--ac);color:var(--onac)}
+button.p:hover{filter:brightness(1.08)}
+.seg button{border-radius:0;margin:0 -1px 0 0}
+.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0}
+.seg button[aria-pressed=true]{background:var(--ac);color:var(--onac)}
+.lbl{font-weight:600;display:block;margin:14px 0 6px}
+input[type=file]{width:100%;padding:14px;border:2px dashed var(--ln);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{width:100%;min-height:90px;padding:10px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+.hint{color:var(--mut);font-size:.88rem;margin:4px 0 0}
+#msg{margin:12px 0 0;min-height:1.4em;color:var(--mut)}#msg.e{color:var(--err)}
+.sc{overflow-x:auto;margin-bottom:6px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:7px 10px;border-bottom:1px solid var(--ln);text-align:left;white-space:nowrap}
+td.t{white-space:normal;min-width:200px}
+th{background:var(--hd);position:sticky;top:0}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.bar{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,480px),1fr));gap:16px}
+.cv{background:#fff;border-radius:8px;padding:8px;height:340px;position:relative}
+.ch h3{margin:0;font-size:1rem}
+.ch .bar{margin-bottom:8px}
+mark{background:var(--hd);color:var(--ink);font-weight:700;padding:0 3px;border-radius:3px}
+.kq{width:100%;max-width:360px;padding:9px 12px;border:1px solid var(--ln);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;margin-bottom:10px}
+.ex{white-space:normal;min-width:260px}
+</style>
+</head>
+<body>
+<div class="w">
+  <h1>QualiLens</h1>
+  <p class="sub">วิเคราะห์ข้อมูลวิจัยเชิงคุณภาพด้วยการประมวลผลภาษาธรรมชาติ (NLP) ทั้งภาษาไทยและภาษาอังกฤษ ทำงานในเบราว์เซอร์ ข้อมูลไม่ถูกส่งออกไปที่ใด</p>
+
+  <section class="card">
+    <h2>ภาษาที่ใช้วิเคราะห์</h2>
+    <div class="row seg" role="group" aria-label="เลือกภาษา">
+      <button id="bth" aria-pressed="true">ภาษาไทย</button>
+      <button id="ben" aria-pressed="false">English</button>
+    </div>
+    <label class="lbl" for="f">แนบไฟล์ข้อมูล (.docx, .txt หรือ .pdf เลือกได้หลายไฟล์พร้อมกัน)</label>
+    <input type="file" id="f" accept=".txt,.docx,.pdf" multiple>
+    <p class="hint">รองรับไฟล์ Word แบบ .docx ไฟล์ข้อความ UTF-8 และไฟล์ PDF ที่มีข้อความให้เลือกได้ (PDF ที่เป็นภาพสแกนต้องทำ OCR ก่อน) ถ้าแนบหลายไฟล์ ระบบจะนำข้อความมารวมกันแล้ววิเคราะห์ครั้งเดียว แยกแต่ละย่อหน้าหรือแต่ละคำตอบด้วยการขึ้นบรรทัดใหม่</p>
+    <label class="lbl" for="pt">หรือวางข้อความที่นี่ (ถ้าไม่ได้แนบไฟล์)</label>
+    <textarea id="pt" placeholder="วางบทสัมภาษณ์หรือข้อความที่ต้องการวิเคราะห์"></textarea>
+    <div class="row" style="margin-top:14px">
+      <button class="p" id="bt">ประมวลผลเป็นตาราง</button>
+      <button class="p" id="bc">ประมวลผลเป็นกราฟ</button>
+      <button id="br">รีเซ็ตข้อมูล</button>
+    </div>
+    <p id="msg" role="status"></p>
+  </section>
+  <div id="out"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fx=(n,d=2)=>+(+n).toFixed(d);
+let lang='th',nF=0,SRC=[],R=null,charts=[],showNum=false;
+
+/* ---------- พจนานุกรม ---------- */
+const SW={
+ en:new Set('a an the and or but if of to in on at by for with from as is are was were be been being it its this that these those i you he she we they them his her our their my your me not no so do does did have has had will would can could should may might than then there here what which who whom when where why how also just very about into over after before more most some such only own same too s t am up out all any because while during each other'.split(' ')),
+ th:new Set('และ หรือ แต่ ที่ ซึ่ง อัน ของ ใน บน จะ ได้ ให้ มี เป็น อยู่ คือ การ ความ นี้ นั้น โดย แล้ว ก็ ไป มา กับ จาก ถึง ว่า ไม่ ยัง ต้อง ควร อาจ เมื่อ ใช้ ทำ นะ ครับ ค่ะ คะ จึง เพราะ ด้วย แก่ แต่ละ ทั้ง บาง หลาย ๆ ผม ฉัน เรา เขา มัน คุณ อย่าง เช่น ถ้า หาก จน ต่อ เพื่อ ขึ้น ลง ออก เข้า ส่วน ครั้ง พวก ผู้ ก่อน หลัง ตอน อีก เลย ซึ่ง นั่น โน่น ใด อะไร ใคร ไหน'.split(' '))};
+const POS=new Set(('good great excellent happy love like helpful useful positive satisfied easy better best improve improved benefit support supported success successful effective enjoy comfortable confident trust motivated ดี ดีมาก สุข มีความสุข ชอบ รัก พอใจ ประทับใจ สะดวก ง่าย ช่วย ประโยชน์ สำเร็จ เก่ง สนุก มั่นใจ ไว้ใจ สบาย เหมาะสม พัฒนา ปรับปรุง').split(' '));
+const NEGW=new Set(('bad poor terrible sad hate dislike difficult hard negative problem problems worse worst fail failed failure stress stressed pain lack lacking confusing slow expensive worry anxious unhappy barrier barriers แย่ เศร้า เกลียด ยาก ลำบาก ปัญหา อุปสรรค เครียด กังวล ผิดหวัง ล้มเหลว ช้า แพง สับสน เหนื่อย ท้อ กลัว ขาด').split(' '));
+const NEG0=new Set(['not','no','never','ไม่','ไม่ได้','ไม่มี','ไม่เคย']);
+
+/* ---------- NLP ---------- */
+function tok(s){
+ if(lang==='th'){
+  const sg=new Intl.Segmenter('th',{granularity:'word'});
+  return [...sg.segment(s)].filter(x=>x.isWordLike).map(x=>x.segment.toLowerCase());
+ }
+ return s.toLowerCase().match(/[a-z][a-z'’-]*/g)||[];
+}
+const keep=w=>w.length>1&&!SW[lang].has(w)&&!/^[\d.,]+$/.test(w);
+const med=a=>{const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+
+function analyze(t){
+ const segs=t.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+ const sents=t.split(/\n+|[.!?]+\s+|\s{2,}/).map(s=>s.trim()).filter(Boolean);
+ const pf={},cn={},fr={},df={},bg={},ds={},uniq=new Set(),all=[],info=[];
+ let rawN=0,pw=0,nw=0;
+ segs.forEach((s,i)=>{
+  const raw=tok(s);let p=0,n=0;const fn=SRC[i]||'';cn[fn]=(cn[fn]||0)+1;
+  raw.forEach((w,j)=>{
+   uniq.add(w);const ng=j>0&&NEG0.has(raw[j-1]);
+   if(POS.has(w))ng?n++:p++;else if(NEGW.has(w))ng?p++:n++;
+  });
+  rawN+=raw.length;pw+=p;nw+=n;
+  const k=raw.filter(keep);all.push(...k);
+  const q=pf[fn]=pf[fn]||{name:fn,K:0,fr:{},N:0,w:0,p:0,n:0,sc:0,ps:0,ng:0,nu:0};
+  q.K+=k.length;q.N++;q.w+=raw.length;q.p+=p;q.n+=n;q.sc+=p-n;p>n?q.ps++:n>p?q.ng++:q.nu++;
+  k.forEach(w=>q.fr[w]=(q.fr[w]||0)+1);
+  k.forEach(w=>fr[w]=(fr[w]||0)+1);
+  new Set(k).forEach(w=>{df[w]=(df[w]||0)+1;(ds[w]=ds[w]||[]).push(i)});
+  for(let j=0;j<k.length-1;j++){const b=lang==='th'?k[j]+k[j+1]:k[j]+' '+k[j+1];bg[b]=(bg[b]||0)+1}
+  info.push({i:i+1,f:fn,lab:nF>1?`${cut(fn.replace(/\.[^.]+$/,''),8)}-${cn[fn]}`:String(i+1),s,w:raw.length,p,n,sc:p-n,lb:p>n?'เชิงบวก':n>p?'เชิงลบ':'เป็นกลาง'});
+ });
+ const N=segs.length,K=all.length;
+ const terms=Object.keys(fr).map(w=>({t:w,f:fr[w],pc:fr[w]/K*100,df:df[w],dp:df[w]/N*100,tf:fr[w]*Math.log(1+N/df[w]),se:POS.has(w)?'บวก':NEGW.has(w)?'ลบ':'-'}))
+  .sort((a,b)=>b.f-a.f||b.tf-a.tf);
+ const bigrams=Object.keys(bg).map(b=>({t:b,f:bg[b],pc:bg[b]/Math.max(1,K-N)*100})).sort((a,b)=>b.f-a.f);
+ const ws=info.map(x=>x.w),mean=ws.reduce((a,b)=>a+b,0)/N;
+ const sd=Math.sqrt(ws.reduce((a,b)=>a+(b-mean)**2,0)/N);
+ const hap=terms.filter(x=>x.f===1).length;
+ const top10=terms.slice(0,10).reduce((a,b)=>a+b.f,0);
+ const cnt=l=>info.filter(x=>x.lb===l).length;
+ const ms=info.reduce((a,b)=>a+b.sc,0)/N;
+ const sum=[
+  ['จำนวนอักขระ (ไม่รวมช่องว่าง)',t.replace(/\s/g,'').length,'ขนาดข้อมูลทั้งหมด'],
+  ['จำนวนคำทั้งหมด (tokens)',rawN,'หลังตัดคำด้วย NLP'],
+  ['จำนวนคำไม่ซ้ำ (types)',uniq.size,'ความหลากหลายของคำ'],
+  ['จำนวนส่วนข้อความ',N,'แต่ละบรรทัดหรือย่อหน้า'],
+  ['จำนวนประโยค',sents.length,'แยกด้วยเครื่องหมายหรือการเว้นวรรคยาว'],
+  ['คำสำคัญหลังตัดคำหยุด',K,'ไม่รวมคำเชื่อมและคำฟุ่มเฟือย'],
+  ['คำสำคัญไม่ซ้ำ',terms.length,''],
+  ['ค่าเฉลี่ยคำต่อส่วนข้อความ',fx(mean),''],
+  ['มัธยฐานคำต่อส่วนข้อความ',fx(med(ws)),''],
+  ['ส่วนเบี่ยงเบนมาตรฐาน',fx(sd),'ความแตกต่างของความยาวแต่ละส่วน'],
+  ['ส่วนข้อความสั้นสุด / ยาวสุด (คำ)',Math.min(...ws)+' / '+Math.max(...ws),''],
+  ['ค่าเฉลี่ยคำต่อประโยค',fx(rawN/Math.max(1,sents.length)),''],
+  ['Type-Token Ratio (TTR)',fx(uniq.size/Math.max(1,rawN),3),'ใกล้ 1 = ใช้คำหลากหลาย'],
+  ['ความหนาแน่นของคำศัพท์',fx(K/Math.max(1,rawN),3),'สัดส่วนคำสำคัญต่อคำทั้งหมด'],
+  ['คำที่ปรากฏครั้งเดียว (hapax)',hap+' ('+fx(hap/terms.length*100,1)+'%)',''],
+  ['สัดส่วนคำสำคัญ 10 อันดับแรก',fx(top10/K*100,1)+'%','ความเข้มข้นของประเด็นหลัก'],
+  ['ส่วนข้อความเชิงบวก / ลบ / กลาง',cnt('เชิงบวก')+' / '+cnt('เชิงลบ')+' / '+cnt('เป็นกลาง'),'อิงพจนานุกรมอารมณ์'],
+  ['คำเชิงบวก / เชิงลบ (รวม)',pw+' / '+nw,''],
+  ['คะแนนอารมณ์เฉลี่ยต่อส่วน',fx(ms),'บวก = เชิงบวกมากกว่า']
+ ];
+ return {segs,info,terms,bigrams,sum,N,K,rawN,cnt,ds,lang,pf};
+}
+
+/* ---------- กลุ่มประเด็น (Theme) และข้อความรอบคำ (KWIC) ---------- */
+function themes(){
+ const top=R.terms.slice(0,Math.min(30,R.terms.length));
+ const sets=top.map(x=>new Set(R.ds[x.t]));
+ const jac=(a,b)=>{let i=0;a.forEach(v=>b.has(v)&&i++);return i/(a.size+b.size-i)};
+ const sim=(A,B)=>{let t=0;A.forEach(a=>B.forEach(b=>t+=jac(sets[a],sets[b])));return t/(A.length*B.length)};
+ let cl=top.map((_,i)=>[i]);
+ const k=Math.max(1,Math.min(6,Math.ceil(top.length/4)));
+ while(cl.length>k){
+  let bi=0,bj=1,bs=-1;
+  for(let i=0;i<cl.length;i++)for(let j=i+1;j<cl.length;j++){const v=sim(cl[i],cl[j]);if(v>bs){bs=v;bi=i;bj=j}}
+  cl[bi]=cl[bi].concat(cl[bj]);cl.splice(bj,1);
+ }
+ return cl.map(c=>{
+  const ks=c.sort((a,b)=>a-b).map(i=>top[i]);
+  const sc={};ks.forEach(x=>R.ds[x.t].forEach(i=>sc[i]=(sc[i]||0)+1));
+  const ids=Object.keys(sc).map(Number);
+  const se=ids.reduce((a,i)=>a+R.info[i].sc,0)/ids.length;
+  const ex=[...ids].sort((a,b)=>sc[b]-sc[a]||a-b).slice(0,3).map(i=>`ส่วนที่ ${i+1}${R.info[i].f?` (${R.info[i].f})`:''}: ${R.info[i].s}`);
+  return {name:ks.slice(0,3).map(x=>x.t).join(' / '),kw:ks.map(x=>x.t),f:ks.reduce((a,x)=>a+x.f,0),sg:ids.length,pc:ids.length/R.N*100,se,ex};
+ }).sort((a,b)=>b.f-a.f);
+}
+const rowTh=(x,i)=>[i+1,x.name,x.kw.join(', '),x.f,x.sg,fx(x.pc,1),fx(x.se),x.ex[0]||''];
+const H4=['ประเด็น','ชื่อประเด็น (คำเด่น)','คำสำคัญในกลุ่ม','ความถี่รวม','ส่วนที่พบ','ร้อยละของส่วน','คะแนนอารมณ์เฉลี่ย','ข้อความตัวอย่าง'];
+function kwic(t,n=8,w=45){
+ const q=t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const re=new RegExp(R.lang==='en'?"(?<![a-z'’-])"+q+"(?![a-z'’-])":q,'i');
+ const out=[];
+ for(const x of R.info){
+  const m=re.exec(x.s);if(!m)continue;
+  const a=m.index,b=a+m[0].length;
+  out.push([x.i,x.f||'-',(a>w?'…':'')+x.s.slice(Math.max(0,a-w),a),m[0],x.s.slice(b,b+w)+(b+w<x.s.length?'…':'')]);
+  if(out.length>=n)break;
+ }
+ return out;
+}
+function kwShow(){
+ const q=$('#kq').value.trim(),r=q?kwic(q,12):[];
+ $('#kr').innerHTML=r.length?'<div class="sc"><table><thead><tr><th class="n">ส่วนที่</th><th>ไฟล์ที่มา</th><th>ข้อความก่อนหน้า</th><th>คำ</th><th>ข้อความถัดไป</th></tr></thead><tbody>'+
+  r.map(x=>`<tr><td class="n">${x[0]}</td><td>${esc(x[1])}</td><td class="t" style="text-align:right">${esc(x[2])}</td><td><mark>${esc(x[3])}</mark></td><td class="t">${esc(x[4])}</td></tr>`).join('')+'</tbody></table></div>':
+  '<p class="hint">ไม่พบคำนี้ในข้อมูล ลองเลือกจากรายการแนะนำ</p>';
+}
+
+/* ---------- เปรียบเทียบรายไฟล์ ---------- */
+function files(){
+ const q=Object.values(R.pf);if(q.length<2)return [];
+ const ov={};R.terms.forEach(x=>ov[x.t]=x.f);
+ return q.map(f=>{
+  const e=Object.entries(f.fr).sort((a,b)=>b[1]-a[1]);
+  f.top=e.slice(0,5).map(x=>x[0]);
+  f.dist=e.filter(x=>x[1]>=2).map(([t,c])=>{const lift=(c/f.K)/(ov[t]/R.K);return {t,c,lift,sc:c*Math.log(lift)}}).filter(x=>x.lift>1).sort((a,b)=>b.sc-a.sc).slice(0,5);
+  return f;
+ });
+}
+const HF1=['ไฟล์','ส่วนข้อความ','จำนวนคำ','คำสำคัญ','คำเฉลี่ยต่อส่วน','คำบวก','คำลบ','คะแนนอารมณ์เฉลี่ยต่อส่วน','ส่วนเชิงบวก','ส่วนเชิงลบ','ส่วนเป็นกลาง'];
+const rowF=f=>[f.name||'-',f.N,f.w,f.K,fx(f.w/f.N),f.p,f.n,fx(f.sc/f.N),f.ps,f.ng,f.nu];
+const HF2=['ไฟล์','คำที่พบบ่อย 5 อันดับ','คำเด่นเฉพาะไฟล์ 5 อันดับ'];
+const rowK=f=>[f.name||'-',f.top.join(', '),f.dist.map(d=>`${d.t} (${d.c} ครั้ง, ×${fx(d.lift,1)})`).join(', ')||'-'];
+function cmpHtml(){
+ return `<h2>7. เปรียบเทียบรายไฟล์</h2>${tbl(HF1,R.fl.map(rowF))}
+ <p class="hint">คำเด่นเฉพาะไฟล์ คือคำที่พบในไฟล์นั้นมากกว่าสัดส่วนในภาพรวมของทุกไฟล์ (พบอย่างน้อย 2 ครั้ง) ตัวเลข ×n คือเท่าของสัดส่วนในภาพรวม</p>${tbl(HF2,R.fl.map(rowK),[1,2])}`;
+}
+
+/* ---------- ตาราง ---------- */
+const H1=['อันดับ','คำสำคัญ','ความถี่','ร้อยละ','จำนวนส่วนที่พบ','ร้อยละของส่วน','TF-IDF','อารมณ์'];
+const rowT=(x,i)=>[i+1,x.t,x.f,fx(x.pc),x.df,fx(x.dp,1),fx(x.tf),x.se];
+const H2=['อันดับ','วลี 2 คำ','ความถี่','ร้อยละ'];
+const rowB=(x,i)=>[i+1,x.t,x.f,fx(x.pc)];
+const H3=['ส่วนที่','ไฟล์ที่มา','ข้อความ','จำนวนคำ','คำบวก','คำลบ','คะแนน','ผลวิเคราะห์'];
+const rowS=x=>[x.i,x.f||'-',x.s,x.w,x.p,x.n,x.sc,x.lb];
+function tbl(h,rows,tx,fn=[]){
+ return '<div class="sc"><table><thead><tr>'+h.map((c,i)=>`<th class="${(fn.includes(i)||typeof rows[0]?.[i]==='number')?'n':''}">${c}</th>`).join('')+'</tr></thead><tbody>'+
+ rows.map(r=>'<tr>'+r.map((c,i)=>`<td class="${(fn.includes(i)||typeof c==='number')?'n':[].concat(tx).includes(i)?'t':''}">${esc(c)}</td>`).join('')+'</tr>').join('')+'</tbody></table></div>';
+}
+function showTable(){
+ destroy();
+ $('#out').innerHTML=`<section class="card"><div class="bar"><h2 style="margin:0">ผลวิเคราะห์ในรูปแบบตาราง</h2><button class="p" id="bx">ดาวน์โหลด Excel (.xlsx)</button></div>
+ <h2>1. สถิติภาพรวม</h2><p class="hint">ส่วนข้อความ คือหนึ่งบรรทัดหรือหนึ่งย่อหน้าในข้อมูล (เช่น คำตอบหนึ่งข้อของผู้ให้ข้อมูลหนึ่งคน)</p>${tbl(['ตัวชี้วัด','ค่า','คำอธิบาย'],R.sum.map(r=>r.map(c=>typeof c==='number'?c:String(c))),2,[1])}
+ <h2>2. คำสำคัญ 10 อันดับแรก (ทั้งหมด ${R.terms.length} คำ, ดาวน์โหลดครบใน Excel)</h2>${tbl(H1,R.terms.slice(0,10).map(rowT))}
+ <h2>3. วลี 2 คำที่พบบ่อย 10 อันดับแรก (ทั้งหมด ${R.bigrams.length} วลี, ดาวน์โหลดครบใน Excel)</h2>${tbl(H2,R.bigrams.slice(0,10).map(rowB))}
+ <h2>4. อารมณ์และความยาวรายส่วนข้อความ</h2>${tbl(H3,R.info.map(x=>rowS({...x,s:x.s.length>80?x.s.slice(0,80)+'…':x.s})),2)}
+ <h2>5. กลุ่มประเด็น (Theme) จากคำที่มักปรากฏร่วมกัน</h2><p class="hint">จัดกลุ่มคำสำคัญ 30 อันดับแรกด้วยความคล้ายของส่วนข้อความที่พบ (Jaccard) และการรวมกลุ่มแบบ average-linkage ตัวอย่างเต็มอยู่ใน Excel</p>${tbl(H4,R.th.map((x,i)=>{const r=rowTh(x,i);r[7]=r[7].length>140?r[7].slice(0,140)+'…':r[7];return r}),[1,2,7])}
+ <h2>6. ข้อความรอบคำสำคัญ (Keyword in Context)</h2>
+ <input class="kq" id="kq" list="kl" value="${esc(R.terms[0].t)}" aria-label="คำที่ต้องการดูบริบท" placeholder="พิมพ์หรือเลือกคำสำคัญ">
+ <datalist id="kl">${R.terms.slice(0,50).map(x=>`<option value="${esc(x.t)}">`).join('')}</datalist><div id="kr"></div>${R.fl.length?cmpHtml():''}</section>`;
+ $('#kq').oninput=kwShow;kwShow();
+ $('#bx').onclick=xl;
+ $('#out').scrollIntoView({behavior:'smooth'});
+}
+function xl(){
+ const wb=XLSX.utils.book_new();
+ const add=(n,r)=>{const ws=XLSX.utils.aoa_to_sheet(r);ws['!cols']=r[0].map((_,i)=>({wch:i===1?40:18}));XLSX.utils.book_append_sheet(wb,ws,n)};
+ add('สรุปสถิติ',[['ตัวชี้วัด','ค่า','คำอธิบาย'],...R.sum]);
+ add('คำสำคัญ',[H1,...R.terms.map(rowT)]);
+ add('วลี 2 คำ',[H2,...R.bigrams.map(rowB)]);
+ add('รายส่วนข้อความ',[H3,...R.info.map(rowS)]);
+ add('กลุ่มประเด็น',[[...H4.slice(0,7),'ตัวอย่างที่ 1','ตัวอย่างที่ 2','ตัวอย่างที่ 3'],...R.th.map((x,i)=>[...rowTh(x,i).slice(0,7),x.ex[0]||'',x.ex[1]||'',x.ex[2]||''])]);
+ const kr=[['คำสำคัญ','ส่วนที่','ไฟล์ที่มา','ข้อความก่อนหน้า','คำ','ข้อความถัดไป']];
+ R.terms.slice(0,30).forEach(x=>kwic(x.t,5,60).forEach(r=>kr.push([x.t,r[0],r[1],r[2],r[3],r[4]])));
+ add('ข้อความรอบคำสำคัญ',kr);
+ if(R.fl.length){
+  add('เปรียบเทียบรายไฟล์',[HF1,...R.fl.map(rowF),[],HF2,...R.fl.map(rowK)]);
+  add('คำรายไฟล์',[['คำสำคัญ','รวมทุกไฟล์',...R.fl.map(f=>f.name)],...R.terms.slice(0,50).map(x=>[x.t,x.f,...R.fl.map(f=>f.fr[x.t]||0)])]);
+ }
+ XLSX.writeFile(wb,'qualitative-analysis.xlsx');
+}
+
+/* ---------- กราฟ ---------- */
+const PAL=['#0F766E','#4F46E5','#D99A00','#DB2777','#0284C7','#65A30D','#7C3AED','#EA580C','#475569','#0D9488','#BE123C','#CA8A04','#2563EB','#16A34A','#9333EA'];
+Chart.register({id:'x',
+ beforeDraw(c){const x=c.ctx;x.save();x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.restore()},
+ afterDatasetsDraw(c){
+  if(!showNum)return;
+  const x=c.ctx,h=c.options.indexAxis==='y',W=c.width,H=c.height;
+  x.save();x.font='600 11px Sarabun,sans-serif';x.textBaseline='middle';x.textAlign='center';x.lineJoin='round';
+  c.data.datasets.forEach((d,i)=>c.getDatasetMeta(i).data.forEach((e,j)=>{
+   const v=d.data[j];if(v==null)return;
+   const p=e.tooltipPosition(),t=String(typeof v==='number'?fx(v):v),w=x.measureText(t).width;
+   const up=['bar','line','radar'].includes(c.config.type);
+   let px=h?p.x+4+w/2:p.x,py=h?p.y:p.y-(up?9:0);
+   px=Math.min(W-w/2-3,Math.max(w/2+3,px));py=Math.min(H-8,Math.max(8,py));
+   x.lineWidth=3;x.strokeStyle='#fff';x.strokeText(t,px,py);x.fillStyle='#111';x.fillText(t,px,py);
+  }));
+  x.restore();
+ }});
+Chart.defaults.layout.padding={top:24,right:46,bottom:6,left:6};
+const cut=(l,n=16)=>{l=String(l);return l.length>n?l.slice(0,n-1)+'…':l};
+Chart.defaults.color='#222';Chart.defaults.font.family='Sarabun,Tahoma,sans-serif';
+function destroy(){charts.forEach(c=>c.destroy());charts=[]}
+function showCharts(){
+ destroy();
+ const tp=R.terms.slice(0,15),tf=[...R.terms].sort((a,b)=>b.tf-a.tf).slice(0,15),t8=R.terms.slice(0,8),bg=R.bigrams.slice(0,10);
+ const L=a=>a.map(x=>x.t),pc=n=>PAL.slice(0,n);
+ const seg=R.info.map(x=>x.lab);
+ const noLg={plugins:{legend:{display:false}}};
+ const defs=[
+  ['คำสำคัญที่พบบ่อย 15 อันดับ (แท่ง)',{type:'bar',data:{labels:L(tp),datasets:[{label:'ความถี่',data:tp.map(x=>x.f),backgroundColor:PAL[0]}]},options:noLg}],
+  ['คำสำคัญตามค่า TF-IDF (แท่งแนวนอน)',{type:'bar',data:{labels:L(tf),datasets:[{label:'TF-IDF',data:tf.map(x=>fx(x.tf)),backgroundColor:PAL[1]}]},options:{indexAxis:'y',...noLg}}],
+  ['สัดส่วนอารมณ์รายส่วนข้อความ (โดนัท)',{type:'doughnut',data:{labels:['เชิงบวก','เชิงลบ','เป็นกลาง'],datasets:[{data:['เชิงบวก','เชิงลบ','เป็นกลาง'].map(R.cnt),backgroundColor:['#16A34A','#DC2626','#94A3B8']}]}}],
+  ['สัดส่วนคำสำคัญ 8 อันดับแรก (วงกลม)',{type:'pie',data:{labels:L(t8),datasets:[{data:t8.map(x=>x.f),backgroundColor:pc(8)}]}}],
+  ['คำสำคัญ 8 อันดับแรก (Polar area)',{type:'polarArea',data:{labels:L(t8),datasets:[{data:t8.map(x=>x.f),backgroundColor:pc(8).map(c=>c+'B3')}]}}],
+  ['โปรไฟล์คำสำคัญ (เรดาร์)',{type:'radar',data:{labels:L(t8),datasets:[{label:'ความถี่',data:t8.map(x=>x.f),borderColor:PAL[3],backgroundColor:PAL[3]+'33'}]},options:noLg}],
+  ['คะแนนอารมณ์รายส่วนข้อความ (เส้น)',{type:'line',data:{labels:seg,datasets:[{label:'คะแนน (บวก − ลบ)',data:R.info.map(x=>x.sc),borderColor:PAL[4],backgroundColor:PAL[4]+'33',fill:true,tension:.25}]},options:noLg}],
+  ['วลี 2 คำที่พบบ่อย (แท่งแนวนอน)',{type:'bar',data:{labels:L(bg),datasets:[{label:'ความถี่',data:bg.map(x=>x.f),backgroundColor:PAL[2]}]},options:{indexAxis:'y',...noLg}}],
+  ['ความยาวรายส่วนข้อความ (จำนวนคำ)',{type:'bar',data:{labels:seg,datasets:[{label:'จำนวนคำ',data:R.info.map(x=>x.w),backgroundColor:PAL[5]}]},options:noLg}],
+  ['ประเด็น (Theme): ความถี่รวมและจำนวนส่วนที่ครอบคลุม',{type:'bar',data:{labels:R.th.map((x,i)=>`ประเด็น ${i+1}: ${cut(x.kw[0],10)}`),datasets:[{label:'ความถี่รวม',data:R.th.map(x=>x.f),backgroundColor:PAL[0]},{label:'ส่วนข้อความที่พบ',data:R.th.map(x=>x.sg),backgroundColor:PAL[2]}]}}],
+  ['สัดส่วนความถี่ของแต่ละประเด็น (โดนัท)',{type:'doughnut',data:{labels:R.th.map((x,i)=>`ประเด็น ${i+1}: ${cut(x.kw[0],10)}`),datasets:[{data:R.th.map(x=>x.f),backgroundColor:pc(R.th.length)}]}}]
+ ];
+ const thc=R.th.map((x,i)=>`ประเด็น ${i+1} = ${x.kw.slice(0,4).join(', ')}`).join(' | ');
+ const sg=nF>1?'ป้ายแกนนอนคือ ชื่อไฟล์-ลำดับส่วนข้อความในไฟล์นั้น (เช่น interview1-3 คือส่วนที่ 3 ของไฟล์ interview1)':'ป้ายแกนนอนคือลำดับของส่วนข้อความ (1 บรรทัดหรือ 1 ย่อหน้า) ตามลำดับในข้อมูล';
+ const META=[
+  ['แสดงคำที่พบบ่อยที่สุด 15 อันดับ ยิ่งสูงยิ่งถูกกล่าวถึงบ่อย','คำสำคัญ','ความถี่ (ครั้ง)'],
+  ['TF-IDF สูง = คำที่พบบ่อยและกระจุกอยู่ในบางส่วนข้อความ จึงเป็นคำเฉพาะของประเด็น ต่างจากคำที่พบทั่วไปทุกส่วน','คำสำคัญ','ค่า TF-IDF'],
+  ['สัดส่วนจำนวนส่วนข้อความที่เป็นเชิงบวก เชิงลบ และเป็นกลาง (ตัวเลขเมื่อเปิดแสดง = จำนวนส่วนข้อความ)'],
+  ['สัดส่วนความถี่ของคำสำคัญ 8 อันดับแรก (ตัวเลขเมื่อเปิดแสดง = ครั้ง)'],
+  ['ความยาวของแต่ละแฉกแทนความถี่ของคำ ยิ่งยาวยิ่งพบบ่อย'],
+  ['เปรียบเทียบความถี่ของคำสำคัญ 8 อันดับแรก ยิ่งไกลจากศูนย์กลางยิ่งพบบ่อย'],
+  ['คะแนนมากกว่า 0 = เชิงบวก น้อยกว่า 0 = เชิงลบ แต่ละจุดคือหนึ่งส่วนข้อความ '+sg,nF>1?'ไฟล์-ลำดับส่วนข้อความ':'ลำดับส่วนข้อความ','คะแนนอารมณ์ (คำบวก − คำลบ)'],
+  ['วลีที่คำสำคัญสองคำปรากฏติดกันบ่อย ใช้ดูบริบทของประเด็น','วลี 2 คำ','ความถี่ (ครั้ง)'],
+  ['จำนวนคำของแต่ละส่วนข้อความ ใช้ดูว่าผู้ให้ข้อมูลตอบยาวหรือสั้นต่างกันเพียงใด '+sg,nF>1?'ไฟล์-ลำดับส่วนข้อความ':'ลำดับส่วนข้อความ','จำนวนคำ'],
+  ['ความถี่รวมของคำในแต่ละประเด็น และจำนวนส่วนข้อความที่พบประเด็นนั้น กลุ่มคำ: '+thc,'ประเด็น','จำนวน (ครั้งหรือส่วน)'],
+  ['สัดส่วนความถี่ของคำในแต่ละประเด็น กลุ่มคำ: '+thc]
+ ];
+ $('#out').innerHTML=`<section class="card"><div class="bar"><h2 style="margin:0">ผลวิเคราะห์ในรูปแบบกราฟ</h2><button id="bn" aria-pressed="false">แสดงตัวเลขในกราฟ: ปิด</button></div><div class="grid" id="g"></div></section>`;
+ if(R.fl.length){
+  const fl=R.fl,base=f=>f.name.replace(/\.[^.]+$/,''),nm=fl.map(f=>cut(base(f),12)),t10=R.terms.slice(0,10),t8f=R.terms.slice(0,8);
+  const pk=(f,w)=>fx((f.fr[w]||0)/(f.K||1)*1000),col=i=>PAL[i%PAL.length];
+  const dd=[];fl.forEach((f,i)=>f.dist.forEach(d=>dd.push({l:`${cut(base(f),6)}: ${d.t}`,v:fx(d.lift,1),c:col(i)})));
+  const st=(l,c,a)=>({label:l,data:fl.map(a),backgroundColor:c,stack:'s'});
+  defs.push(
+   ['อารมณ์เฉลี่ยของแต่ละไฟล์',{type:'bar',data:{labels:nm,datasets:[{label:'คะแนนอารมณ์เฉลี่ย',data:fl.map(f=>fx(f.sc/f.N)),backgroundColor:fl.map(f=>f.sc>=0?'#16A34A':'#DC2626')}]},options:noLg}],
+   ['สัดส่วนอารมณ์รายไฟล์ (แท่งซ้อน)',{type:'bar',data:{labels:nm,datasets:[st('เชิงบวก','#16A34A',f=>f.ps),st('เชิงลบ','#DC2626',f=>f.ng),st('เป็นกลาง','#94A3B8',f=>f.nu)]}}],
+   ['ความยาวเฉลี่ยของส่วนข้อความรายไฟล์',{type:'bar',data:{labels:nm,datasets:[{label:'คำเฉลี่ยต่อส่วน',data:fl.map(f=>fx(f.w/f.N,1)),backgroundColor:PAL[5]}]},options:noLg}],
+   ['คำสำคัญเปรียบเทียบรายไฟล์ (แท่งกลุ่ม)',{type:'bar',data:{labels:L(t10),datasets:fl.map((f,i)=>({label:nm[i],data:t10.map(x=>pk(f,x.t)),backgroundColor:col(i)}))}}],
+   ['โปรไฟล์คำสำคัญรายไฟล์ (เรดาร์)',{type:'radar',data:{labels:L(t8f),datasets:fl.map((f,i)=>({label:nm[i],data:t8f.map(x=>pk(f,x.t)),borderColor:col(i),backgroundColor:col(i)+'22'}))}}],
+   ['คำเด่นเฉพาะของแต่ละไฟล์',{type:'bar',data:{labels:dd.map(x=>x.l),datasets:[{label:'เด่นกว่าภาพรวม (เท่า)',data:dd.map(x=>x.v),backgroundColor:dd.map(x=>x.c)}]},options:{indexAxis:'y',...noLg}}]
+  );
+  META.push(
+   ['คะแนนเฉลี่ย = (คำบวก − คำลบ) ต่อส่วนข้อความของแต่ละไฟล์ สีเขียว = เชิงบวก สีแดง = เชิงลบ','ไฟล์','คะแนนอารมณ์เฉลี่ยต่อส่วน'],
+   ['จำนวนส่วนข้อความที่เป็นเชิงบวก เชิงลบ และเป็นกลางของแต่ละไฟล์ ความสูงรวมของแท่ง = จำนวนส่วนข้อความทั้งหมดของไฟล์','ไฟล์','จำนวนส่วนข้อความ'],
+   ['จำนวนคำเฉลี่ยต่อส่วนข้อความ ใช้เทียบว่าไฟล์ใดตอบยาวกว่ากัน','ไฟล์','คำเฉลี่ยต่อส่วน'],
+   ['ความถี่ของคำสำคัญ 10 อันดับแรกในแต่ละไฟล์ ปรับเป็นต่อ 1,000 คำสำคัญของไฟล์นั้น เพื่อเทียบกันได้แม้ไฟล์ขนาดต่างกัน','คำสำคัญ','ความถี่ต่อ 1,000 คำสำคัญ'],
+   ['โปรไฟล์ความถี่ (ต่อ 1,000 คำสำคัญ) ของคำสำคัญ 8 อันดับแรก แต่ละเส้นคือหนึ่งไฟล์ ใช้ดูว่าแต่ละไฟล์เน้นคำใด'],
+   ['คำที่พบในไฟล์นั้นบ่อยกว่าภาพรวมของทุกไฟล์ (พบอย่างน้อย 2 ครั้ง) ค่า = เท่าของสัดส่วนในภาพรวม ป้ายหน้าคำคือชื่อไฟล์ สีแยกตามไฟล์','คำเด่น (ไฟล์: คำ)','เด่นกว่าภาพรวม (เท่า)']
+  );
+ }
+ defs.forEach(([ti,cfg],k)=>{
+  cfg.options={responsive:true,maintainAspectRatio:false,animation:false,...cfg.options};
+  const cat=cfg.options.indexAxis==='y'?'y':'x',stk=cfg.data.datasets.some(d=>d.stack),hh=cat==='y'&&cfg.data.labels.length>15?cfg.data.labels.length*20+90:340;
+  if(['bar','line'].includes(cfg.type)){const mt=META[k]||[],vl=cat==='x'?'y':'x',ax=t=>t?{display:true,text:t,font:{weight:'600'}}:{display:false};
+   cfg.options.scales={[cat]:{stacked:stk,title:ax(mt[1]),ticks:{autoSkip:cat==='x',maxRotation:50,callback(v){return cut(this.getLabelForValue(v))}}},[vl]:{stacked:stk,title:ax(mt[2]),beginAtZero:cfg.type==='bar'}}}
+  if(cfg.type==='radar')cfg.options.scales={r:{pointLabels:{callback:l=>cut(l,12)}}};
+  if(['pie','doughnut','polarArea'].includes(cfg.type))cfg.options.plugins={legend:{position:'bottom',labels:{boxWidth:12}}};
+  cfg.options.plugins={...cfg.options.plugins,title:{display:true,text:ti,font:{size:13,weight:'600'}}};
+  const d=document.createElement('div');d.className='ch';
+  d.innerHTML=`<div class="bar"><h3>${ti}</h3><button data-k="${k}">ดาวน์โหลด PNG</button></div><div class="cv" style="height:${hh}px"><canvas></canvas></div><p class="hint">${(META[k]||[])[0]||''}</p>`;
+  $('#g').appendChild(d);
+  const c=new Chart(d.querySelector('canvas'),cfg);charts.push(c);
+  d.querySelector('button').onclick=()=>{const a=document.createElement('a');a.href=c.toBase64Image('image/png',1);a.download=`chart-${k+1}.png`;a.click()};
+ });
+ $('#bn').onclick=e=>{showNum=!showNum;e.target.textContent='แสดงตัวเลขในกราฟ: '+(showNum?'เปิด':'ปิด');e.target.setAttribute('aria-pressed',showNum);charts.forEach(c=>c.update('none'))};
+ showNum=false;
+ $('#out').scrollIntoView({behavior:'smooth'});
+}
+
+/* ---------- การควบคุม ---------- */
+const msg=(t,e)=>{const m=$('#msg');m.textContent=t;m.className=e?'e':''};
+function setLang(l){lang=l;$('#bth').setAttribute('aria-pressed',l==='th');$('#ben').setAttribute('aria-pressed',l==='en')}
+$('#bth').onclick=()=>setLang('th');$('#ben').onclick=()=>setLang('en');
+/* อ่านข้อความจาก PDF: รวมบรรทัดที่อยู่ติดกันเป็นย่อหน้า โดยดูระยะห่างแนวตั้ง */
+if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+async function pdfText(f){
+ if(!window.pdfjsLib)throw new Error('โหลดตัวอ่าน PDF ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต');
+ const doc=await pdfjsLib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise,out=[];
+ for(let n=1;n<=doc.numPages;n++){
+  const c=await(await doc.getPage(n)).getTextContent(),L=[];
+  c.items.forEach(it=>{
+   const y=it.transform[5],l=L[L.length-1];
+   if(l&&Math.abs(l.y-y)<Math.max(2,(it.height||10)*.4))l.t+=it.str;
+   else if(it.str.trim())L.push({y,t:it.str});
+  });
+  const g=L.slice(1).map((l,i)=>Math.abs(L[i].y-l.y)).sort((a,b)=>a-b),m=g.length?g[g.length>>1]:0;
+  const P=[];let cur='';
+  L.forEach((l,i)=>{
+   const t=l.t.trim();
+   if(i&&m&&Math.abs(L[i-1].y-l.y)>m*1.5){if(cur)P.push(cur);cur=t}
+   else cur=!cur?t:/[A-Za-z]-$/.test(cur)?cur.slice(0,-1)+t:cur+' '+t;
+  });
+  if(cur)P.push(cur);
+  out.push(P.join('\n'));
+ }
+ const t=out.join('\n').trim();
+ if(t.replace(/\s/g,'').length<20)throw new Error(`ไฟล์ ${f.name} ไม่มีข้อความให้ดึง (อาจเป็น PDF ภาพสแกน ต้องทำ OCR ก่อน)`);
+ return t;
+}
+async function getText(){
+ const fs=[...$('#f').files];let t=$('#pt').value;nF=fs.length;SRC=[];
+ if(fs.length){
+  const parts=[];
+  for(const f of fs){
+   let x;
+   if(/\.docx$/i.test(f.name))x=(await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()})).value;
+   else if(/\.txt$/i.test(f.name))x=await f.text();
+   else if(/\.pdf$/i.test(f.name))x=await pdfText(f);
+   else throw new Error(`ไฟล์ ${f.name} ไม่รองรับ (รองรับ .docx, .txt และ .pdf)`);
+   parts.push(x);
+   SRC.push(...x.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(()=>f.name));
+  }
+  t=parts.join('\n');
+ }
+ return t.trim();
+}
+async function run(mode){
+ msg('กำลังประมวลผล…');
+ try{
+  const t=await getText();
+  if(!t){msg('กรุณาแนบไฟล์หรือวางข้อความก่อนกดประมวลผล',1);return}
+  if(lang==='th'&&!(window.Intl&&Intl.Segmenter)){msg('เบราว์เซอร์นี้ไม่รองรับการตัดคำไทย กรุณาใช้ Chrome, Edge หรือ Safari รุ่นใหม่',1);return}
+  R=analyze(t);R.th=themes();R.fl=files();
+  if(!R.terms.length){msg('ไม่พบคำสำคัญ ตรวจสอบว่าเลือกภาษาตรงกับข้อมูล',1);return}
+  mode==='t'?showTable():showCharts();
+  msg(`วิเคราะห์เสร็จแล้ว: ${nF>1?nF+' ไฟล์, ':''}${R.rawN} คำ, ${R.N} ส่วนข้อความ, ${R.terms.length} คำสำคัญ`);
+ }catch(e){msg('เกิดข้อผิดพลาด: '+e.message,1)}
+}
+$('#bt').onclick=()=>run('t');$('#bc').onclick=()=>run('c');
+$('#br').onclick=()=>{destroy();R=null;showNum=false;$('#f').value='';$('#pt').value='';$('#out').innerHTML='';setLang('th');msg('รีเซ็ตข้อมูลแล้ว')};
+</script>
+</body>
+</html>
